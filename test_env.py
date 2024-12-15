@@ -47,6 +47,7 @@ while True:
 
     if noise is not None:
         action += noise()
+    print(np.linalg.norm(action))
 
     obs, reward, done, trucated, infos = env.step(action)
     returns += reward

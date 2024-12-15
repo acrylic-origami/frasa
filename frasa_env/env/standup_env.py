@@ -28,7 +28,7 @@ class StandupEnv(gymnasium.Env):
             "render_realtime": True,
             # Target robot state (q_motors, tilt) [rad^6]
             # [elbow, shoulder_pitch, hip_pitch, knee, ankle_pitch, IMU_pitch]
-            "desired_state": np.deg2rad([-49.5, 19.5, -52, 79, -36.5, -8.5]),
+            "desired_state": np.deg2rad([-49.5, -19.5, 52, -79, 36.5, -8.5]),
             # Probability of seeding the robot in finale position
             "reset_final_p": 0.1,
             # Termination conditions
@@ -46,7 +46,7 @@ class StandupEnv(gymnasium.Env):
             "random_v": [13.8, 16.8],  # [volts]
             "nominal_v": 15,  # [volts]
             # Control type (position, velocity or error)
-            "control": "velocity",
+            "control": "position",
             "interpolate": True,
             # Delay for velocity [s]
             "qdot_delay": 0.030,
@@ -226,6 +226,7 @@ class StandupEnv(gymnasium.Env):
             start_q = [self.sim.get_q(f"left_{dof}") for dof in self.dofs]
             target_ctrl_unclipped = np.array(start_q) + action
 
+
         # Limiting the control
         target_ctrl = np.clip(
             target_ctrl_unclipped,
@@ -242,6 +243,7 @@ class StandupEnv(gymnasium.Env):
 
         # Step the simulation
         timesteps = round(self.time_ratio * self.options["dt"] / self.sim.dt)
+        # print(self.get_tilt())
         for k in range(timesteps):
             if self.options["interpolate"]:
                 alpha = (k + 1) / timesteps
@@ -290,7 +292,9 @@ class StandupEnv(gymnasium.Env):
 
         state_current = [*self.q_history[-1], self.tilt_history[-1]]
 
-        reward = np.exp(-20 * (np.linalg.norm(np.array(state_current) - np.array(self.options["desired_state"])) ** 2))
+        reward = 40 * np.exp(-(np.linalg.norm(np.array(state_current) - np.array(self.options["desired_state"])) ** 2) * 0.05)
+        # print(reward)
+        # print(np.array(state_current) - np.array(self.options["desired_state"]))
 
         action_variation = np.abs(action - self.previous_actions[-1])
         self.previous_actions.append(action)
@@ -436,8 +440,9 @@ class StandupEnv(gymnasium.Env):
         self.sim.reset_render()
 
         # Taking arms a little bit inside
-        self.sim.set_control("left_shoulder_roll", -np.deg2rad(5))
-        self.sim.set_control("right_shoulder_roll", np.deg2rad(5))
+        # remove for bez training
+        # self.sim.set_control("left_shoulder_roll", -np.deg2rad(5))
+        # self.sim.set_control("right_shoulder_roll", np.deg2rad(5))
 
         # Initializing the history
         q = [self.sim.get_q(f"left_{dof}") for dof in self.dofs]
