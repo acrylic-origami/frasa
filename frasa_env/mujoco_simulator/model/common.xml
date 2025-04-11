@@ -1,0 +1,48 @@
+<mujoco>
+  <compiler angle="radian" />
+  <visual>
+    <headlight ambient="1 1 1"/>
+    <map force="0.1" zfar="30" />
+    <rgba haze="0.15 0.25 0.35 1" />
+    <global offwidth="2560" offheight="1440" elevation="-20" azimuth="120" />
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1=".3 .5 .7" rgb2="0 0 0" width="32" height="512" />
+    <texture name="body" type="cube" builtin="flat" mark="cross" width="128" height="128" rgb1="0.8 0.6 0.4" rgb2="0.8 0.6 0.4" markrgb="1 1 1" random="0.01" />
+    <material name="body" texture="body" texuniform="true" rgba="0.8 0.6 .4 1" />
+    <texture name="grid" type="2d" builtin="checker" width="512" height="512" rgb1=".1 .2 .3" rgb2=".2 .3 .4" />
+    <material name="grid" texture="grid" texrepeat="1 1" texuniform="true" reflectance=".2" />
+    <material name="grass" rgba="0 1 0 .3" />
+  </asset>
+  <option>
+    <flag gravity="enable" />
+  </option>
+  <default>
+    <default class="body">
+      <!--geom condim="3" friction=".7" solimp=".3 .95 .05 0.5 3" solref=".5 9" material="body" /-->
+      <joint damping="1.084" armature="0.045" />
+      <general ctrllimited="false" forcelimited="false" forcerange="-5 5" gainprm="10" biastype="affine" biasprm="0 0 -3.33" /> <!-- biasprm kv = Tmax/vmax -->
+
+
+      <!--geom condim="3" friction=".7" solimp=".3 .95 .05 0.5 3" solref=".08 2" material="body" /--><!-- Old grass-like soft floor constraints, non-physical (possible to coast by leaning forward) -->
+    </default>
+  </default>
+  <worldbody>
+    <!--geom name="floor_grass_friction" size="0.0 0.0 0.1" pos="0.0 0.0 0.015" type="plane" material="grid" condim="3" priority="10" friction="10" solimp="0.9 0.99 0.01" solref="0.2 0.1" /--> <!-- normal-free friction layer, emulate grass snagging -->
+
+    <!-- note when condim was 1 Mujoco made this a very viscous contact (still soft) but when condim was 3 the viscosity evaporated. it's odd because the friction definitely shouldn't affect the normal spring-damper dynamics -->
+    <!-- seems also very high friction (e.g. 10) surprisingly makes the contact very soft (even extreme raw stiffness values >1000 weren't enforcing the constraint). This is very odd, I thought friction coefficient needed to be high for this soft contact because the normal force was small, and that wouldn't affect the normal dynamics -->
+    <!-- also note: you can't mix negative and positive solref, makes sense, stiffness and damping both rely on timeconst -->
+    <!--geom name="floor_grass_friction" size="0.0 0.0 0.1" pos="0.0 0.0 0.06" type="plane" material="grass" condim="3" priority="10" friction="10" solimp="0.96 0.99 0.001 0.5 2" solref="-163 -10" /> <!-- dissipative very soft grass layer, very high friction (worst-case grass snagging, but unrealistically supportive for stance phase. high friction is required for avoiding vibrational excitation and spring resonance [?] or simulation instability, which enables floating above the surface of the grass which is very bad) ~~frictionless (friction provided by the friction layer)~~ -->
+    <!--geom name="floor_grass_spring" size="0.0 0.0 0.1" pos="0.0 0.0 0.06" type="plane" material="grass" condim="3" priority="10" friction="0.5" solimp="0.01 0.1 0.01" solref="1 10" /--> 
+
+    <geom name="floor_mat" size="0.0 0.0 0.1" pos="0.0 0.0 0.0" type="plane" material="grid" condim="3" priority="10" friction="2" solimp="0.9 0.99 0.01" solref="0.0001 1" /> <!-- highly dissipative hard mat/floor layer --><!--contype="0" conaffinity="0" group="1" /-->
+
+    <light name="spotlight" mode="targetbodycom" target="torso_2023" diffuse=".8 .8 .8" specular="0.3 0.3 0.3" pos="0.0 -12.0 8.0" cutoff="30" />
+    <light name="top" pos="0.0 0.0 4.0" mode="trackcom" />
+    <camera name="back" pos="-2.0 0.0 1.0" xyaxes="0 -1 0 1 0 3" mode="trackcom" />
+    <camera name="front" pos="6.0 0.0 2.0" xyaxes="0 1 0 -1 0 2" mode="trackcom" />
+    <camera name="side" pos="0.0 -6.0 2.0" xyaxes="1 0 0 0 1 2" mode="trackcom" />
+  </worldbody>
+</mujoco>
